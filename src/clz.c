@@ -35,10 +35,20 @@
  */
 
 #include "zygote.h"
+#include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
 
 
 int main (int argc, char **argv) {
 
-    zyg_connect("sock");
+    const char *home = getenv("HOME");
+    const char *basename =  ".cl-zygote.sock";
+    size_t n = strlen(home) + strlen(basename) + 2;
+    char buf[n];
+    snprintf(buf,n,"%s/%s",home,basename);
+
+    zyg_connect(buf);
+
     return 0;
 }

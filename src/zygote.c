@@ -38,6 +38,7 @@
 #include <errno.h>
 #include <unistd.h>
 #include <stdio.h>
+#include <poll.h>
 
 #include <sys/un.h>
 #include <sys/types.h>
@@ -52,6 +53,11 @@ int zyg_listen( const char *sun_path )
 
 
     struct sockaddr_un addr;
+    {
+        int i = unlink(sun_path);
+        if(i && ENOENT != i )
+            zyg_fail_perr("unlink");
+    }
 
     int sock = socket(AF_UNIX, SOCK_STREAM, 0);
     if( 0 > sock ) {
@@ -175,7 +181,13 @@ int zyg_connect( const char *sun_path )
     zyg_send_fd(sock, STDERR_FILENO);
 
     /* Wait for Close */
-    sleep(60);
+    struct pollfd pfd;
+    pfd.fd = sock;
+    pfd.events = POLLHUP;
+
+    while( poll(&pfd, 1, -1) > 0 ) {
+        if( pfd.revents & POLLHUP ) break;
+    }
 }
 
 
