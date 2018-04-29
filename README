@@ -1,1 +1,34 @@
 Fast process startup for common lisp
+
+Installation
+============
+
+1. `autoreconf -i`
+
+2. `./configure`
+
+3. `make`
+
+4. `make install`
+
+Usage
+=====
+
+1. Start the server: `cl-zygote`
+
+2. Run the client: `clz -e "(print 'hello-world)"`
+
+Theory of Operation
+===================
+
+1. The server `cl-zygote` is a lisp process that waits on a unix
+   domain socket for connections from clients.
+
+2. The client `clz` connects to the server and passes to an expression
+   to evaluate along with its standard input, output, and error file
+   descriptors.
+
+3. The server then forks a child handler, dups the client's file
+   descriptors to its own, and evaluates the passed expression.
+
+Loosely inspired by the Android Zygote process.

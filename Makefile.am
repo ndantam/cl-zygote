@@ -9,17 +9,18 @@ lib_LTLIBRARIES =
 EXTRA_DIST =
 
 
-
 lib_LTLIBRARIES += libclzygote.la
-
 libclzygote_la_SOURCES = \
 	src/zygote.c
 
-noinst_PROGRAMS = testsrv
 
-testsrv_SOURCES = src/testsrv.c
-testsrv_LDADD = libclzygote.la
-
-bin_PROGRAMS = clz
+bin_PROGRAMS += clz
 clz_SOURCES = src/clz.c
 clz_LDADD = libclzygote.la
+
+bin_SCRIPTS += cl-zygote
+
+
+noinst_PROGRAMS += testsrv
+testsrv_SOURCES = src/testsrv.c
+testsrv_LDADD = libclzygote.la
