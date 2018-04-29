@@ -53,6 +53,9 @@ int main (int argc, char **argv) {
     sock = zyg_connect(buf);
     zyg_send_stdio(sock);
 
+    char *cwd = getcwd(NULL, 0);
+    zyg_send_string(sock,cwd);
+
     const char *opt_msg = NULL;
 
     /* options */

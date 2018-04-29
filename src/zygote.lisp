@@ -32,6 +32,8 @@
   (zyg-recv-stdio sock)
   ;; (format *error-output* "~A ~A~%"
   ;;         (lisp-implementation-type)
+  (let ((cwd (recv-string sock)))
+    (sb-posix:chdir cwd))
   (loop for msg = (recv-string sock)
      while msg
      do (eval (read-from-string msg)))

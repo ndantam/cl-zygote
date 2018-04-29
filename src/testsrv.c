@@ -64,6 +64,8 @@ int main (int argc, char **argv) {
 
         if( 0 == pid ) {
             zyg_recv_stdio(csock);
+            char *cwd = zyg_recv_string(csock);
+            chdir(cwd);
 
             size_t n = 0;
             char **msgs = NULL;
