@@ -17,8 +17,11 @@
 
 (defun child (csock)
   (let* ((buf (zyg-process csock))
-         (msg (foreign-string-to-lisp buf)))
-    (format t "msg: ~A~%" msg))
+         (msg (foreign-string-to-lisp buf))
+         (exp (read-from-string msg)))
+    ;;(format t "~A ~A~%" (lisp-implementation-type) (lisp-implementation-version))
+    ;;(format t "msg: ~A~%" msg)
+    (eval exp))
   (sb-ext:exit))
 
 (defun handle (csock)
@@ -28,8 +31,8 @@
     (if (zerop pid)
         (child csock) ; child
         (progn      ; parent
-          (print 'parent)
-          (force-output *standard-output*)
+          ;;(print 'parent)
+          ;;(force-output *standard-output*)
           (sb-posix:close csock)))))
 
 (defun serve (&key

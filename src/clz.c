@@ -38,12 +38,37 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <unistd.h>
 
 
 int main (int argc, char **argv) {
 
-    (void) argc;
-    (void) argv;
+    /* options */
+    const char *opt_msg = NULL;
+    {
+        int c;
+        opterr = 0;
+        while( (c = getopt( argc, argv, "e:?")) != -1 ) {
+            switch(c) {
+            case 'e':
+                opt_msg = optarg;
+                break;
+            case '?':
+                puts( "clz -e EXPRESSION\n"
+                      "Evaluate expression via cl-zygote\n"
+                      "\n"
+                      "Options:\n"
+                      "  -e EXPRESSION,    Lisp expression to evaluate"
+                    );
+                exit(EXIT_SUCCESS);
+            }
+        }
+    }
+
+    if( NULL == opt_msg ) {
+        fprintf(stderr, "No expression specified\n");
+        exit(EXIT_FAILURE);
+    }
 
     const char *home = getenv("HOME");
     const char *basename =  ".cl-zygote.sock";
@@ -51,7 +76,7 @@ int main (int argc, char **argv) {
     char buf[n];
     snprintf(buf,n,"%s/%s",home,basename);
 
-    zyg_connect(buf);
+    zyg_connect(buf, opt_msg);
 
     return 0;
 }

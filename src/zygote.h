@@ -39,7 +39,7 @@ int zyg_accept( int sock );
 char *zyg_process( int sock );
 int zyg_fail_perr( const char *s );
 
-int zyg_connect( const char *sun_path );
+int zyg_connect( const char *sun_path, const char *expression );
 
 int zyg_recv_fd( int sock );
 

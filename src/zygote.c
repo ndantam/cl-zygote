@@ -135,8 +135,6 @@ int zyg_send_fd( int sock, int fd )
     struct iovec io = { .iov_base = &dup,
                         .iov_len = 1 + strlen(dup) };
 
-    printf("sizeof dup: %ld\n",  io.iov_len);
-
     msg.msg_iov = &io;
     msg.msg_iovlen = 1;
     msg.msg_control = buf;
@@ -182,12 +180,10 @@ char *zyg_process( int csock )
             dup2(err_fd, STDERR_FILENO);
     }
 
-    printf("This message will be displayed on client stdout\n");
-
     return buf;
 }
 
-int zyg_connect( const char *sun_path )
+int zyg_connect( const char *sun_path, const char *msg )
 {
     /* Create Socket */
     int sock;
@@ -207,7 +203,6 @@ int zyg_connect( const char *sun_path )
     }
 
     /* Send message */
-    const char *msg = "echo message";
     size_t msg_size = strlen(msg);
     send_buf( sock, &msg_size, sizeof(msg_size) );
     send_buf( sock, msg, msg_size );
