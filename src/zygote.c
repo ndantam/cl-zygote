@@ -47,6 +47,11 @@
 
 #include "zygote.h"
 
+static void
+send_buf(int sock, const void *buf, size_t n);
+
+static void
+recv_buf(int sock, void *buf, size_t n);
 
 int zyg_listen( const char *sun_path )
 {
@@ -77,6 +82,8 @@ int zyg_listen( const char *sun_path )
 
     return sock;
 }
+
+
 
 int zyg_accept( int sock )
 {
@@ -118,26 +125,6 @@ int zyg_recv_fd( int sock )
     return -1;
 }
 
-char *zyg_process( int csock )
-{
-    int in_fd = zyg_recv_fd(csock);
-    int out_fd = zyg_recv_fd(csock);
-    int err_fd = zyg_recv_fd(csock);
-
-    if( in_fd >= 0 )
-        dup2(in_fd, STDIN_FILENO);
-    if( out_fd >= 0 )
-        dup2(out_fd, STDOUT_FILENO);
-    if( err_fd >= 0 )
-        dup2(err_fd, STDERR_FILENO);
-
-    printf("This message will be displayed on client stdout\n");
-
-
-
-    return (char*)"test message\n";
-}
-
 int zyg_send_fd( int sock, int fd )
 {
     struct msghdr msg = {0};
@@ -169,11 +156,40 @@ int zyg_send_fd( int sock, int fd )
     return 0;
 }
 
+char *zyg_process( int csock )
+{
+    /* Get Message */
+    char *buf;
+    {
+        size_t msg_size;
+        recv_buf(csock, &msg_size, sizeof(msg_size));
+        buf = (char*) malloc(msg_size+1);
+        recv_buf(csock, buf, msg_size);
+        buf[msg_size] = '\0';
+    }
+
+    /* Get FDs */
+    {
+        int in_fd = zyg_recv_fd(csock);
+        int out_fd = zyg_recv_fd(csock);
+        int err_fd = zyg_recv_fd(csock);
+
+        if( in_fd >= 0 )
+            dup2(in_fd, STDIN_FILENO);
+        if( out_fd >= 0 )
+            dup2(out_fd, STDOUT_FILENO);
+        if( err_fd >= 0 )
+            dup2(err_fd, STDERR_FILENO);
+    }
+
+    printf("This message will be displayed on client stdout\n");
+
+    return buf;
+}
+
 int zyg_connect( const char *sun_path )
 {
-
     /* Create Socket */
-
     int sock;
     {
         struct sockaddr_un addr;
@@ -190,6 +206,11 @@ int zyg_connect( const char *sun_path )
             zyg_fail_perr("connect");
     }
 
+    /* Send message */
+    const char *msg = "echo message";
+    size_t msg_size = strlen(msg);
+    send_buf( sock, &msg_size, sizeof(msg_size) );
+    send_buf( sock, msg, msg_size );
 
     /* Send Fd */
     zyg_send_fd(sock, STDIN_FILENO);
@@ -197,12 +218,14 @@ int zyg_connect( const char *sun_path )
     zyg_send_fd(sock, STDERR_FILENO);
 
     /* Wait for Close */
-    struct pollfd pfd;
-    pfd.fd = sock;
-    pfd.events = POLLHUP;
+    {
+        struct pollfd pfd;
+        pfd.fd = sock;
+        pfd.events = POLLHUP;
 
-    while( poll(&pfd, 1, -1) > 0 ) {
-        if( pfd.revents & POLLHUP ) break;
+        while( poll(&pfd, 1, -1) > 0 ) {
+            if( pfd.revents & POLLHUP ) break;
+        }
     }
 
     return 0;
@@ -213,4 +236,23 @@ int zyg_fail_perr ( const char *s )
 {
     perror(s);
     exit(EXIT_FAILURE);
+}
+
+
+static void
+send_buf(int sock, const void *buf, size_t n)
+{
+    ssize_t r = write( sock, buf, n );
+    if( r != (ssize_t)n ) {
+        zyg_fail_perr("write");
+    }
+}
+
+static void
+recv_buf(int sock, void *buf, size_t n)
+{
+    ssize_t r = read( sock, buf, n );
+    if( r != (ssize_t)n ) {
+        zyg_fail_perr("read");
+    }
 }
