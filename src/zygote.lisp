@@ -44,10 +44,13 @@
   (finish-output *error-output*)
   (let ((pid (sb-posix:fork)))
     (if (zerop pid)
-        (child csock) ; child
-        (progn      ; parent
-          ;;(print 'parent)
-          ;;(force-output *standard-output*)
+        ;; child
+        (if (zerop (sb-posix:fork))
+            (child csock) ; grandchild
+            (sb-ext:exit))
+        ;; parent
+        (progn
+          (sb-posix:waitpid pid 0) ; reap
           (sb-posix:close csock)))))
 
 (defun serve (&key
