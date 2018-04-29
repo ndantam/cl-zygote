@@ -7,7 +7,7 @@
 (defcfun zyg-accept :int
   (sock :int))
 
-(defcfun zyg-process :int
+(defcfun zyg-process :pointer
   (sock :int))
 
 
@@ -15,20 +15,22 @@
   (t (:default "libclzygote")))
 (use-foreign-library libclzygote)
 
+(defun child (csock)
+  (let* ((buf (zyg-process csock))
+         (msg (foreign-string-to-lisp buf)))
+    (format t "msg: ~A~%" msg))
+  (sb-ext:exit))
+
 (defun handle (csock)
   (finish-output *standard-output*)
   (finish-output *error-output*)
-  (labels ((child ()
-             (zyg-process csock)
-             (print 'child)
-             (sb-ext:exit))
-           (parent ()
-             (print 'parent)
-             (sb-posix:close csock)))
-    (let ((pid (sb-posix:fork)))
-      (if (zerop pid)
-          (child)
-          (parent)))))
+  (let ((pid (sb-posix:fork)))
+    (if (zerop pid)
+        (child csock) ; child
+        (progn      ; parent
+          (print 'parent)
+          (force-output *standard-output*)
+          (sb-posix:close csock)))))
 
 (defun serve (&key
                 socket )

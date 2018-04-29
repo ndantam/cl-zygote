@@ -36,12 +36,28 @@
 
 #include "zygote.h"
 
+#include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
+#include <unistd.h>
 
 int main (int argc, char **argv) {
-    int sock = zyg_listen("sock");
+    (void) argc;
+    (void) argv;
+
+    const char *home = getenv("HOME");
+    const char *basename =  ".cl-zygote.sock";
+    size_t n = strlen(home) + strlen(basename) + 2;
+    char buf[n];
+    snprintf(buf,n,"%s/%s",home,basename);
+
+
+    int sock = zyg_listen(buf);
     while(1) {
         int csock = zyg_accept(sock);
-        zyg_process(csock);
+        char *msg = zyg_process(csock);
+        printf("msg: %s\n", msg);
+        close(csock);
     }
 
 

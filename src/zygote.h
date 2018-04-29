@@ -36,7 +36,7 @@
 
 int zyg_listen( const char *sun_path );
 int zyg_accept( int sock );
-int zyg_process( int sock );
+char *zyg_process( int sock );
 int zyg_fail_perr( const char *s );
 
 int zyg_connect( const char *sun_path );

@@ -42,6 +42,9 @@
 
 int main (int argc, char **argv) {
 
+    (void) argc;
+    (void) argv;
+
     const char *home = getenv("HOME");
     const char *basename =  ".cl-zygote.sock";
     size_t n = strlen(home) + strlen(basename) + 2;

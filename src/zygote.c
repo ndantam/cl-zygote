@@ -91,7 +91,7 @@ int zyg_accept( int sock )
 
 int zyg_recv_fd( int sock )
 {
-    size_t nread;
+    //size_t nread;
     struct msghdr msg;
     struct cmsghdr *cmsg;
     char buf[CMSG_SPACE(sizeof(int))], dup[256];
@@ -103,36 +103,52 @@ int zyg_recv_fd( int sock )
     msg.msg_control = buf;
     msg.msg_controllen = sizeof(buf);
 
-    if ( recvmsg(sock, &msg, 0) < 0 )
+
+    long r = recvmsg(sock, &msg, 0);
+    if (r < 0) {
         zyg_fail_perr("recvmsg");
+    } else if( r > 0 ) {
+        //fprintf(stderr, "r: %d\n", r);
+        //printf("size: %d\n", io.iov_len );
+        cmsg = CMSG_FIRSTHDR(&msg);
+        int *fdptr = (int *)CMSG_DATA(cmsg);
+        return *fdptr;
+    }
 
-    cmsg = CMSG_FIRSTHDR(&msg);
-
-    int *fdptr = (int *)CMSG_DATA(cmsg);
-    return *fdptr;
+    return -1;
 }
 
-int zyg_process( int csock )
+char *zyg_process( int csock )
 {
     int in_fd = zyg_recv_fd(csock);
     int out_fd = zyg_recv_fd(csock);
     int err_fd = zyg_recv_fd(csock);
 
-    dup2(in_fd, STDIN_FILENO);
-    dup2(out_fd, STDOUT_FILENO);
-    dup2(err_fd, STDERR_FILENO);
+    if( in_fd >= 0 )
+        dup2(in_fd, STDIN_FILENO);
+    if( out_fd >= 0 )
+        dup2(out_fd, STDOUT_FILENO);
+    if( err_fd >= 0 )
+        dup2(err_fd, STDERR_FILENO);
 
     printf("This message will be displayed on client stdout\n");
 
+
+
+    return (char*)"test message\n";
 }
 
 int zyg_send_fd( int sock, int fd )
 {
     struct msghdr msg = {0};
     struct cmsghdr *cmsg;
-    char buf[CMSG_SPACE(sizeof(int))], *dup = "hello world";
+    char buf[CMSG_SPACE(sizeof(int))];
+    const char *dup = "hello world";
     memset(buf, '\0', sizeof(buf));
-    struct iovec io = { .iov_base = &dup, .iov_len = sizeof(dup) };
+    struct iovec io = { .iov_base = &dup,
+                        .iov_len = 1 + strlen(dup) };
+
+    printf("sizeof dup: %ld\n",  io.iov_len);
 
     msg.msg_iov = &io;
     msg.msg_iovlen = 1;
@@ -150,7 +166,7 @@ int zyg_send_fd( int sock, int fd )
     if (sendmsg(sock, &msg, 0) == -1)
         zyg_fail_perr("sendmsg");
 
-
+    return 0;
 }
 
 int zyg_connect( const char *sun_path )
@@ -188,6 +204,8 @@ int zyg_connect( const char *sun_path )
     while( poll(&pfd, 1, -1) > 0 ) {
         if( pfd.revents & POLLHUP ) break;
     }
+
+    return 0;
 }
 
 
