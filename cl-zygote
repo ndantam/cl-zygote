@@ -1,8 +1,8 @@
 #!/bin/sh
 
-sbcl \
-    --noinform  \
-    --disable-debugger \
-    --eval "(require 'zygote)" \
-    --eval "(zygote:serve)" \
-    --eval '(sb-ext:quit)'
+exec sbcl \
+     --noinform  \
+     --disable-debugger \
+     --eval "(require 'zygote)" \
+     --eval "(zygote:serve)" \
+     --eval '(sb-ext:quit)'
