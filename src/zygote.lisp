@@ -22,26 +22,19 @@
 
 (defun recv-string (sock)
   (let ((buf (zyg-recv-string sock)))
-    ;(print buf)
     (if (null-pointer-p buf)
         nil
         (let ((msg (foreign-string-to-lisp buf)))
           (foreign-free buf)
           msg))))
 
-(defun recv-exps (sock)
+(defun child (sock)
+  (zyg-recv-stdio sock)
+  ;; (format *error-output* "~A ~A~%"
+  ;;         (lisp-implementation-type)
   (loop for msg = (recv-string sock)
      while msg
-     collect (read-from-string msg)))
-
-
-(defun child (sock)
-  (let* ((exps (recv-exps sock)))
-    (zyg-recv-stdio sock)
-    ;; (format *error-output* "~A ~A~%"
-    ;;         (lisp-implementation-type)
-    ;;         (lisp-implementation-version))
-    (map nil #'eval exps))
+     do (eval (read-from-string msg)))
   (sb-ext:exit))
 
 (defun handle (csock)

@@ -63,6 +63,8 @@ int main (int argc, char **argv) {
         int pid = fork();
 
         if( 0 == pid ) {
+            zyg_recv_stdio(csock);
+
             size_t n = 0;
             char **msgs = NULL;
             char *msg = NULL;
@@ -73,7 +75,6 @@ int main (int argc, char **argv) {
                 n++;
             }
 
-            zyg_recv_stdio(csock);
 
             for( size_t i = 0; i < n; i ++ ) {
                 printf("msg %lu: %s\n", i, msgs[i]);

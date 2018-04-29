@@ -51,6 +51,7 @@ int main (int argc, char **argv) {
     snprintf(buf,n,"%s/%s",home,basename);
 
     sock = zyg_connect(buf);
+    zyg_send_stdio(sock);
 
     const char *opt_msg = NULL;
 
@@ -84,7 +85,6 @@ int main (int argc, char **argv) {
     // mark end of expressions
     zyg_send_string(sock,NULL);
 
-    zyg_send_stdio(sock);
     zyg_wait(sock);
 
     return 0;
