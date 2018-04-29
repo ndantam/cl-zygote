@@ -98,13 +98,15 @@ int zyg_accept( int sock )
 
 int zyg_recv_fd( int sock )
 {
-    //size_t nread;
     struct msghdr msg;
     struct cmsghdr *cmsg;
     char buf[CMSG_SPACE(sizeof(int))], dup[256];
     memset(buf, '\0', sizeof(buf));
+    memset(dup, '\0', sizeof(dup));
     struct iovec io = { .iov_base = &dup, .iov_len = sizeof(dup) };
 
+
+    memset(&msg, 0, sizeof(msg));
     msg.msg_iov = &io;
     msg.msg_iovlen = 1;
     msg.msg_control = buf;
@@ -115,8 +117,6 @@ int zyg_recv_fd( int sock )
     if (r < 0) {
         zyg_fail_perr("recvmsg");
     } else if( r > 0 ) {
-        //fprintf(stderr, "r: %d\n", r);
-        //printf("size: %d\n", io.iov_len );
         cmsg = CMSG_FIRSTHDR(&msg);
         int *fdptr = (int *)CMSG_DATA(cmsg);
         return *fdptr;
@@ -167,20 +167,25 @@ char *zyg_process( int csock )
     }
 
     /* Get FDs */
-    {
-        int in_fd = zyg_recv_fd(csock);
-        int out_fd = zyg_recv_fd(csock);
-        int err_fd = zyg_recv_fd(csock);
-
-        if( in_fd >= 0 )
-            dup2(in_fd, STDIN_FILENO);
-        if( out_fd >= 0 )
-            dup2(out_fd, STDOUT_FILENO);
-        if( err_fd >= 0 )
-            dup2(err_fd, STDERR_FILENO);
-    }
+    //zyg_recv_stdio(csock);
 
     return buf;
+}
+
+int zyg_recv_stdio( int sock )
+{
+    int in_fd = zyg_recv_fd(sock);
+    int out_fd = zyg_recv_fd(sock);
+    int err_fd = zyg_recv_fd(sock);
+
+    if( in_fd >= 0 )
+        dup2(in_fd, STDIN_FILENO);
+    if( out_fd >= 0 )
+        dup2(out_fd, STDOUT_FILENO);
+    if( err_fd >= 0 )
+        dup2(err_fd, STDERR_FILENO);
+
+    return 0;
 }
 
 int zyg_connect( const char *sun_path )
@@ -205,7 +210,7 @@ int zyg_send_stdio( int sock )
     zyg_send_fd(sock, STDIN_FILENO);
     zyg_send_fd(sock, STDOUT_FILENO);
     zyg_send_fd(sock, STDERR_FILENO);
-
+    return 0;
 }
 
 int zyg_wait( int sock )
@@ -229,9 +234,10 @@ int zyg_fail_perr ( const char *s )
 
 int zyg_send_string( int sock, const char * msg )
 {
-    size_t msg_size = strlen(msg);
+    size_t msg_size = msg ? strlen(msg) : 0;
     send_buf( sock, &msg_size, sizeof(msg_size) );
-    send_buf( sock, msg, msg_size );
+    if( msg_size )
+        send_buf( sock, msg, msg_size );
     return 0;
 }
 
@@ -239,11 +245,15 @@ char * zyg_recv_string( int sock )
 {
     size_t msg_size;
     recv_buf(sock, &msg_size, sizeof(msg_size));
-    char *buf = (char*) malloc(msg_size+1);
-    recv_buf(sock, buf, msg_size);
-    buf[msg_size] = '\0';
+    if( msg_size ) {
+        char *buf = (char*) malloc(msg_size+1);
+        recv_buf(sock, buf, msg_size);
+        buf[msg_size] = '\0';
+        return buf;
+    } else {
+        return NULL;
+    }
 
-    return buf;
 }
 
 

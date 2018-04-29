@@ -47,6 +47,9 @@ int zyg_send_string( int sock, const char * m );
 
 char * zyg_recv_string( int sock );
 
+/* Server Functions */
+int zyg_recv_stdio( int sock );
+
 /* Client Functions */
 int zyg_connect( const char *sun_path );
 int zyg_send_stdio( int sock );

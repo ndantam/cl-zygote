@@ -45,18 +45,42 @@ int main (int argc, char **argv) {
     (void) argc;
     (void) argv;
 
-    const char *home = getenv("HOME");
-    const char *basename =  ".cl-zygote.sock";
-    size_t n = strlen(home) + strlen(basename) + 2;
-    char buf[n];
-    snprintf(buf,n,"%s/%s",home,basename);
+
+    int sock;
+    {
+        const char *home = getenv("HOME");
+        const char *basename =  ".cl-zygote.sock";
+        size_t n = strlen(home) + strlen(basename) + 2;
+        char buf[n];
+        snprintf(buf,n,"%s/%s",home,basename);
+        sock = zyg_listen(buf);
+    }
 
 
-    int sock = zyg_listen(buf);
     while(1) {
         int csock = zyg_accept(sock);
-        char *msg = zyg_process(csock);
-        printf("msg: %s\n", msg);
+
+        int pid = fork();
+
+        if( 0 == pid ) {
+            size_t n = 0;
+            char **msgs = NULL;
+            char *msg = NULL;
+            while( (msg = zyg_recv_string(csock)) ) {
+                msgs = (char**) realloc(msgs, (1+n)*(sizeof(char*)));
+                msgs[n] = msg;
+                printf("got: %s\n", msg);
+                n++;
+            }
+
+            zyg_recv_stdio(csock);
+
+            for( size_t i = 0; i < n; i ++ ) {
+                printf("msg %lu: %s\n", i, msgs[i]);
+            }
+            exit(EXIT_SUCCESS);
+        }
+
         close(csock);
     }
 

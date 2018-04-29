@@ -81,6 +81,9 @@ int main (int argc, char **argv) {
         exit(EXIT_FAILURE);
     }
 
+    // mark end of expressions
+    zyg_send_string(sock,NULL);
+
     zyg_send_stdio(sock);
     zyg_wait(sock);
 

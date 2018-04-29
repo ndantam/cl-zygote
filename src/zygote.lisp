@@ -10,18 +10,38 @@
 (defcfun zyg-process :pointer
   (sock :int))
 
+(defcfun zyg-recv-string :pointer
+  (sock :int))
+
+(defcfun zyg-recv-stdio :int
+  (sock :int))
 
 (define-foreign-library libclzygote
   (t (:default "libclzygote")))
 (use-foreign-library libclzygote)
 
-(defun child (csock)
-  (let* ((buf (zyg-process csock))
-         (msg (foreign-string-to-lisp buf))
-         (exp (read-from-string msg)))
-    ;;(format t "~A ~A~%" (lisp-implementation-type) (lisp-implementation-version))
-    ;;(format t "msg: ~A~%" msg)
-    (eval exp))
+(defun recv-string (sock)
+  (let ((buf (zyg-recv-string sock)))
+    ;(print buf)
+    (if (null-pointer-p buf)
+        nil
+        (let ((msg (foreign-string-to-lisp buf)))
+          (foreign-free buf)
+          msg))))
+
+(defun recv-exps (sock)
+  (loop for msg = (recv-string sock)
+     while msg
+     collect (read-from-string msg)))
+
+
+(defun child (sock)
+  (let* ((exps (recv-exps sock)))
+    (zyg-recv-stdio sock)
+    ;; (format *error-output* "~A ~A~%"
+    ;;         (lisp-implementation-type)
+    ;;         (lisp-implementation-version))
+    (map nil #'eval exps))
   (sb-ext:exit))
 
 (defun handle (csock)
