@@ -183,54 +183,67 @@ char *zyg_process( int csock )
     return buf;
 }
 
-int zyg_connect( const char *sun_path, const char *msg )
+int zyg_connect( const char *sun_path )
 {
-    /* Create Socket */
-    int sock;
-    {
-        struct sockaddr_un addr;
+    struct sockaddr_un addr;
+    int sock = socket(AF_UNIX, SOCK_STREAM, 0);
+    if (0 > sock )
+        zyg_fail_perr("socket");
 
-        sock = socket(AF_UNIX, SOCK_STREAM, 0);
-        if (0 > sock )
-            zyg_fail_perr("socket");
+    memset(&addr, 0, sizeof(struct sockaddr_un));
+    addr.sun_family = AF_UNIX;
+    strncpy(addr.sun_path, sun_path, sizeof(addr.sun_path) - 1);
 
-        memset(&addr, 0, sizeof(struct sockaddr_un));
-        addr.sun_family = AF_UNIX;
-        strncpy(addr.sun_path, sun_path, sizeof(addr.sun_path) - 1);
+    if (connect(sock, (struct sockaddr *) &addr, sizeof(struct sockaddr_un)))
+        zyg_fail_perr("connect");
 
-        if (connect(sock, (struct sockaddr *) &addr, sizeof(struct sockaddr_un)))
-            zyg_fail_perr("connect");
-    }
+    return sock;
+}
 
-    /* Send message */
-    size_t msg_size = strlen(msg);
-    send_buf( sock, &msg_size, sizeof(msg_size) );
-    send_buf( sock, msg, msg_size );
-
-    /* Send Fd */
+int zyg_send_stdio( int sock )
+{
     zyg_send_fd(sock, STDIN_FILENO);
     zyg_send_fd(sock, STDOUT_FILENO);
     zyg_send_fd(sock, STDERR_FILENO);
 
-    /* Wait for Close */
-    {
-        struct pollfd pfd;
-        pfd.fd = sock;
-        pfd.events = POLLHUP;
+}
 
-        while( poll(&pfd, 1, -1) > 0 ) {
-            if( pfd.revents & POLLHUP ) break;
-        }
+int zyg_wait( int sock )
+{
+    struct pollfd pfd;
+    pfd.fd = sock;
+    pfd.events = POLLHUP;
+
+    while( poll(&pfd, 1, -1) > 0 ) {
+        if( pfd.revents & POLLHUP ) break;
     }
 
     return 0;
 }
 
-
 int zyg_fail_perr ( const char *s )
 {
     perror(s);
     exit(EXIT_FAILURE);
+}
+
+int zyg_send_string( int sock, const char * msg )
+{
+    size_t msg_size = strlen(msg);
+    send_buf( sock, &msg_size, sizeof(msg_size) );
+    send_buf( sock, msg, msg_size );
+    return 0;
+}
+
+char * zyg_recv_string( int sock )
+{
+    size_t msg_size;
+    recv_buf(sock, &msg_size, sizeof(msg_size));
+    char *buf = (char*) malloc(msg_size+1);
+    recv_buf(sock, buf, msg_size);
+    buf[msg_size] = '\0';
+
+    return buf;
 }
 
 

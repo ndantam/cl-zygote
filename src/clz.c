@@ -42,15 +42,26 @@
 
 
 int main (int argc, char **argv) {
+    int sock = -1;
+
+    const char *home = getenv("HOME");
+    const char *basename =  ".cl-zygote.sock";
+    size_t n = strlen(home) + strlen(basename) + 2;
+    char buf[n];
+    snprintf(buf,n,"%s/%s",home,basename);
+
+    sock = zyg_connect(buf);
+
+    const char *opt_msg = NULL;
 
     /* options */
-    const char *opt_msg = NULL;
     {
         int c;
         opterr = 0;
         while( (c = getopt( argc, argv, "e:?")) != -1 ) {
             switch(c) {
             case 'e':
+                zyg_send_string(sock,optarg);
                 opt_msg = optarg;
                 break;
             case '?':
@@ -70,13 +81,8 @@ int main (int argc, char **argv) {
         exit(EXIT_FAILURE);
     }
 
-    const char *home = getenv("HOME");
-    const char *basename =  ".cl-zygote.sock";
-    size_t n = strlen(home) + strlen(basename) + 2;
-    char buf[n];
-    snprintf(buf,n,"%s/%s",home,basename);
-
-    zyg_connect(buf, opt_msg);
+    zyg_send_stdio(sock);
+    zyg_wait(sock);
 
     return 0;
 }
